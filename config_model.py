@@ -26,12 +26,12 @@ cnn_model = {
         "gamma": 0.5,
         "epochs": 300,
         "batch_size": 64,
-        "train_dataset_path": "",
-        "validation_dataset_path": "",
-        "test_dataset_path": "",
+        "train_dataset_path": "/home/michpir/Documents/PROJECTS/dataset/train_subset_pow.pkl",
+        "validation_dataset_path": "/home/michpir/Documents/PROJECTS/dataset/validation_subset_pow.pkl",
+        "test_dataset_path": "/home/michpir/Documents/PROJECTS/dataset/Preprocessed_test_pow_preparation_no_sparse_small.output",
         "save_every": 1,
         "report_every": 1,
-        "save_path": "",
+        "save_path": "/home/michpir/Documents/PROJECTS",
     }
 }
 

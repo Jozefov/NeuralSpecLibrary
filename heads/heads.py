@@ -2,9 +2,9 @@ import torch
 import torch.nn as nn
 from torch_geometric.nn import global_mean_pool as gap
 
-from heads_utils import mask_prediction_by_mass
-from heads_utils import reverse_prediction
-from heads_utils import SKIPblock
+from .heads_utils import mask_prediction_by_mass
+from .heads_utils import reverse_prediction
+from .heads_utils import SKIPblock
 
 
 class CONV_HEAD(torch.nn.Module):

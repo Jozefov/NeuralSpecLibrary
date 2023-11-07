@@ -28,12 +28,29 @@ def main():
     # Pick first 5000 from test dataset during training, to see validation
     test_dataset = test_dataset[:5000]
 
-    # Initialize data loaders
-    train_loader = DataLoader(train_dataset,
-                              batch_size=model_configuration["training"]["batch_size"], shuffle=True)
+    from torch.utils.data import Subset
+    import random
+    def create_subset_indices(dataset, num_instances):
+        return random.sample(range(len(dataset)), min(len(dataset), num_instances))
 
-    validation_loader = DataLoader(validation_dataset,
-                                   batch_size=model_configuration["training"]["batch_size"], shuffle=True)
+    # Create subset indices for each dataset
+    train_indices = create_subset_indices(train_dataset, 5000)
+    validation_indices = create_subset_indices(validation_dataset, 5000)
+
+    # Create subsets from the datasets using the generated indices
+    train_subset = Subset(train_dataset, train_indices)
+    validation_subset = Subset(validation_dataset, validation_indices)
+
+    train_loader = DataLoader(train_subset, batch_size=model_configuration["training"]["batch_size"], shuffle=True)
+    validation_loader = DataLoader(validation_subset, batch_size=model_configuration["training"]["batch_size"], shuffle=True)
+
+
+    # Initialize data loaders
+    # train_loader = DataLoader(train_dataset,
+    #                           batch_size=model_configuration["training"]["batch_size"], shuffle=True)
+    #
+    # validation_loader = DataLoader(validation_dataset,
+    #                                batch_size=model_configuration["training"]["batch_size"], shuffle=True)
 
     test_loader = DataLoader(test_dataset,
                              batch_size=model_configuration["training"]["batch_size"], shuffle=True)
