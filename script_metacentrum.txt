@@ -1,0 +1,1 @@
+qsub -I -l select=1:ncpus=4:mem=24gb:scratch_local=40gb -l walltime=1:00:00

@@ -1,0 +1,7 @@
+matchms==0.23.1
+matplotlib==3.8.0
+numpy==1.26.1
+pandas==2.1.2
+rdkit==2023.9.1
+torch==2.1.0
+torch_geometric==2.4.0
