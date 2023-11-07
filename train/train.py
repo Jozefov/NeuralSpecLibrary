@@ -7,7 +7,7 @@ from metrics import validate_similarities_torch
 
 def train_model(
         model,  # The PyTorch model you want to train.
-        # model_config,   # Python dictionary, where model parameters are stored.
+        model_config,   # Python dictionary, where model parameters are stored.
         train_loader,  # DataLoader object for your training dataset.
         loss_fn,  # The loss function used for training (e.g., MSE, CrossEntropy).
         optimizer,  # The optimization algorithm (e.g., Adam, SGD).
@@ -52,19 +52,24 @@ def train_model(
         loss_list.append(train_loss)
 
         if epoch % report_every == 0:
-            print(f"Epoch {epoch} | Train Loss {train_loss}")
+            report_message = f"Epoch {epoch} | Train Loss {train_loss}"
+            report_status(report_message, save_to_file=model_config["training"]["print_to_file"],
+                          directory_path=model_config["training"]["save_path"])
 
             if test_loader:
                 test_similarity = validate_similarities_torch(test_loader, model)
-                test_similarity_list.append(test_similarity)
-                print(f"Epoch {epoch} | Test DotSimilarity is {test_similarity}")
+                report_message = f"Epoch {epoch} | Test DotSimilarity is {test_similarity}"
+                report_status(report_message, save_to_file=model_config["training"]["print_to_file"],
+                              directory_path=model_config["training"]["save_path"])
 
             if val_loader:
                 val_similarity = validate_similarities_torch(val_loader, model)
-                val_similarity_list.append(val_similarity)
-                print(f"Epoch {epoch} | Validation DotSimilarity is {val_similarity}")
+                report_message = f"Epoch {epoch} | Validation DotSimilarity is {val_similarity}"
+                report_status(report_message, save_to_file=model_config["training"]["print_to_file"],
+                              directory_path=model_config["training"]["save_path"])
 
-            print()
+            report_status("",  save_to_file=model_config["training"]["print_to_file"],
+                          directory_path=model_config["training"]["save_path"])
 
         if epoch % save_every == 0:
             metadata["test_similarity"] = test_similarity_list
@@ -72,6 +77,22 @@ def train_model(
             metadata["loss_all"] = loss_list
 
             save_model(model, epoch, train_loss, save_path, optimizer=optimizer, scheduler=scheduler, metadata=metadata)
+
+
+def report_status(message, save_to_file=True, directory_path=None):
+    if save_to_file and directory_path is not None:
+        # Ensure the directory exists, and if not, create it
+        os.makedirs(directory_path, exist_ok=True)
+
+        # Define the full file path
+        file_path = os.path.join(directory_path, 'model_training_report.txt')
+
+        # Open the file in append mode. If it doesn't exist, it will be created.
+        with open(file_path, 'a') as file:
+            file.write(message + '\n')
+    else:
+        # Just print the message to the console
+        print(message)
 
 
 def save_model(model, epoch, loss, save_path, optimizer=None, scheduler=None, metadata=None):

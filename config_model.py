@@ -31,7 +31,8 @@ cnn_model = {
         "test_dataset_path": "/home/michpir/Documents/PROJECTS/dataset/Preprocessed_test_pow_preparation_no_sparse_small.output",
         "save_every": 1,
         "report_every": 1,
-        "save_path": "/home/michpir/Documents/PROJECTS",
+        "print_to_file": True,
+        "save_path": "/home/michpir/Documents/PROJECTS/output",
     }
 }
 

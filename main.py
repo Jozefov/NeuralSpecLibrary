@@ -73,6 +73,7 @@ def main():
     # Training loop
     train_model(
         model=model,
+        model_config=model_configuration,
         train_loader=train_loader,
         loss_fn=loss_fn,
         optimizer=optimizer,
