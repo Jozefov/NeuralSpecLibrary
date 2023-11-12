@@ -11,7 +11,7 @@ from train import train_model
 def main():
 
     # Set model we are working with
-    model_configuration = config_model.cnn_model
+    model_configuration = config_model.transformer_cnn_model
 
     # Set path to datasets
     train_dataset_path = model_configuration["training"]["train_dataset_path"]

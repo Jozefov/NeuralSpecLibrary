@@ -4,66 +4,64 @@
 #PBS -l walltime=3:00:00 
 #PBS -m ae
 
-# Define the desired Python version
+# Define the desired Python version and installation paths
 DESIRED_PYTHON_VERSION="3.10.12"
-VENV_NAME="venv_$DESIRED_PYTHON_VERSION"
+PYTHON_INSTALL_PATH="/storage/brno2/home/jozefov_147/python/${DESIRED_PYTHON_VERSION}"
+VENV_NAME="venv"
 REQUIREMENTS_PATH="/storage/projects/msml/NeuralSpecLib/NeuralSpecLibrary/requirements.txt"
 MAIN_PY_PATH="/storage/projects/msml/NeuralSpecLib/NeuralSpecLibrary/main.py"
 
-# Function to check if Python version is installed
-check_python_version() {
-    if ! pyenv versions | grep -q "$DESIRED_PYTHON_VERSION"; then
-        echo "Python $DESIRED_PYTHON_VERSION is not installed."
-        echo "Installing Python $DESIRED_PYTHON_VERSION..."
-        pyenv install "$DESIRED_PYTHON_VERSION"
-    else
-        echo "Python $DESIRED_PYTHON_VERSION is already installed."
-    fi
+# Prepare environment
+export PYTHONUSERBASE="${PYTHON_INSTALL_PATH}/.local"
+export PYTHONPATH="${PYTHONUSERBASE}/lib/python3.10/site-packages:${PYTHONPATH}"
+export PATH="${PYTHONUSERBASE}/bin:${PATH}"
+
+# Function to install Python from source
+install_python_from_source() {
+    # Define Python source URL
+    local python_source_url="https://www.python.org/ftp/python/${DESIRED_PYTHON_VERSION}/Python-${DESIRED_PYTHON_VERSION}.tgz"
+    
+    # Download Python source
+    wget "$python_source_url" -O Python.tgz
+    
+    # Extract the source code
+    tar -xzf Python.tgz
+    cd "Python-${DESIRED_PYTHON_VERSION}"
+    
+    # Configure and compile Python
+    ./configure --prefix="${PYTHON_INSTALL_PATH}"
+    make
+    make install
+    
+    # Update the PATH
+    export PATH="${PYTHON_INSTALL_PATH}/bin:${PATH}"
 }
 
-# Function to create a virtual environment with the desired Python version
-create_virtualenv() {
-    # Set the local Python version
-    pyenv local "$DESIRED_PYTHON_VERSION"
-
-    # Create virtual environment
-    python -m venv "$VENV_NAME"
-
-    # Activate virtual environment
-    source "$VENV_NAME/bin/activate"
+# Function to install or update pip
+install_or_update_pip() {
+    wget 'https://bootstrap.pypa.io/get-pip.py'
+    python3 get-pip.py --user
 }
 
-# Install requirements
-install_requirements() {
-    if [ -f "$REQUIREMENTS_PATH" ]; then
-        pip install -r "$REQUIREMENTS_PATH"
-    else
-        echo "Requirements file not found at $REQUIREMENTS_PATH"
-        exit 1
-    fi
-}
-
-# Run main.py
-run_main_py() {
-    if [ -f "$MAIN_PY_PATH" ]; then
-        python "$MAIN_PY_PATH"
-    else
-        echo "main.py not found at $MAIN_PY_PATH"
-        exit 1
-    fi
-}
-
-# Check if pyenv is installed
-if ! command -v pyenv &> /dev/null; then
-    echo "pyenv could not be found. Please install pyenv first."
-    exit 1
+# Check if the desired Python version is installed
+if [ ! -d "${PYTHON_INSTALL_PATH}" ]; then
+    install_python_from_source
 fi
 
-# Main execution
-check_python_version
-create_virtualenv
-install_requirements
-run_main_py
+# Install or update pip
+install_or_update_pip
 
-# Deactivate virtual environment after the script is done
+# Create a virtual environment with the desired Python version
+python3 -m venv "${VENV_NAME}"
+
+# Activate the virtual environment
+source "${VENV_NAME}/bin/activate"
+
+# Install requirements from the requirements.txt file
+pip install -r "${REQUIREMENTS_PATH}"
+
+# Run the main.py script
+python "${MAIN_PY_PATH}"
+
+# Deactivate the virtual environment
 deactivate
