@@ -1,9 +1,9 @@
 import train.optimizer
 import train.scheduler
 import train.loss_fun
-from emeddings import CONV_GNN, TRANSFORMER_CONV, GAT
+from emeddings import CONV_GNN, TRANSFORMER_CONV, GAT, NEIMS
 from heads import CONV_HEAD, BIDIRECTIONAL_HEAD
-from combine_models import CombinedModelCNN, CombinedTransformerConvolutionModel, CombineGeneral
+from combine_models import CombinedModelCNN, CombineGeneral, CombineMolecularFingerPrint
 
 cnn_model = {
     "node_features": 50,
@@ -18,6 +18,7 @@ cnn_model = {
     "head": CONV_HEAD,
     "model": CombinedModelCNN(50, int(2000*0.15), 2000, 1000, 5),
     "training": {
+        "training_method": "graph",
         "loss_fun": train.loss_fun.loss_fun_dict["Huber"],
         "learning_rate": 0.0005,
         "optimizer": train.optimizer.optimizer_dic["Adam"],
@@ -49,11 +50,13 @@ transformer_cnn_model = {
     "mass_power": 1.0,
     "mass_shift": 5,
     "embedding": TRANSFORMER_CONV(50, 10, int(200*0.1), 4, 0.1),
-    "head": BIDIRECTIONAL_HEAD(int(200*0.1), 2000, 1000),
+    "head": BIDIRECTIONAL_HEAD(int(200*0.1), 200, 1000),
+    "combine": CombineGeneral,
     "model": CombineGeneral(TRANSFORMER_CONV(50, 10, int(200*0.1), 4, 0.1),
                             BIDIRECTIONAL_HEAD(int(200 * 0.1), 200, 1000),
                             5),
     "training": {
+        "training_method": "graph",
         "loss_fun": train.loss_fun.loss_fun_dict["Huber"],
         "learning_rate": 0.0005,
         "optimizer": train.optimizer.optimizer_dic["Adam"],
@@ -85,11 +88,12 @@ gat_model = {
     "mass_power": 1.0,
     "mass_shift": 5,
     "embedding": GAT(50, 10, int(200*0.1), 4, 0.1),
-    "head": BIDIRECTIONAL_HEAD(int(200*0.1), 2000, 1000),
+    "head": BIDIRECTIONAL_HEAD(int(200*0.1), 200, 1000),
     "model": CombineGeneral(GAT(50, 10, int(200*0.1), 4, 0.1),
                             BIDIRECTIONAL_HEAD(int(200 * 0.1), 200, 1000),
                             5),
     "training": {
+        "training_method": "graph",
         "loss_fun": train.loss_fun.loss_fun_dict["Huber"],
         "learning_rate": 0.0005,
         "optimizer": train.optimizer.optimizer_dic["Adam"],
@@ -98,12 +102,57 @@ gat_model = {
         "gamma": 0.5,
         "epochs": 300,
         "batch_size": 64,
-        "train_dataset_path": "/home/michpir/Documents/PROJECTS/dataset/train_subset_pow.pkl",
-        "validation_dataset_path": "/home/michpir/Documents/PROJECTS/dataset/validation_subset_pow.pkl",
-        "test_dataset_path": "/home/michpir/Documents/PROJECTS/dataset/Preprocessed_test_pow_preparation_no_sparse_small.output",
+        "train_dataset_path": "/home/michpir/Documents/PROJECTS/dataset/train_graph_pow.output",
+        "validation_dataset_path": "/home/michpir/Documents/PROJECTS/dataset/validation_graph_pow.output",
+        "test_dataset_path": "/home/michpir/Documents/PROJECTS/dataset/test_graph_pow.output",
         "save_every": 1,
         "report_every": 1,
         "print_to_file": True,
         "save_path": "/home/michpir/Documents/PROJECTS/output",
+    }
+}
+
+
+neims_model = {
+    "name": "neims_model",
+    "input_features": 4096,
+    "spectrum_preprocessing": "pow",
+    "embedding_size": 2000,
+    "output_size": 1000,
+    "intensity_power": 0.5,
+    "mass_power": 1.0,
+    "mass_shift": 5,
+    "embedding": NEIMS(),
+    "head": BIDIRECTIONAL_HEAD(4096, 2000, 1000, use_graph=False),
+    "model": CombineMolecularFingerPrint(NEIMS(),
+                            BIDIRECTIONAL_HEAD(4096, 2000, 1000, use_graph=False),
+                            5),
+    "training": {
+        "training_method": "fingerprints",
+        "loss_fun": train.loss_fun.loss_fun_dict["Huber"],
+        "learning_rate": 0.0005,
+        "optimizer": train.optimizer.optimizer_dic["Adam"],
+        "scheduler": train.scheduler.scheduler_dic["lr_scheduler"],
+        "step_size": 100,
+        "gamma": 0.5,
+        "epochs": 300,
+        "batch_size": 64,
+        "train_dataset_path": "/home/michpir/Documents/PROJECTS/dataset/train_small_ecfp_pow.pkl",
+        "validation_dataset_path": "/home/michpir/Documents/PROJECTS/dataset/train_small_ecfp_pow.pkl",
+        "test_dataset_path": "/home/michpir/Documents/PROJECTS/dataset/test_small_ecfp_pow.pkl",
+        "save_every": 1,
+        "report_every": 1,
+        "print_to_file": True,
+        "save_path": "/home/michpir/Documents/PROJECTS/output",
+    },
+    "preprocessing": {
+        "method": "molecular fingerprints",
+        "radius": 2,
+        "fingerprint_length": 4096,
+        "use_features": False,
+        "use_chirality": False,
+        "intensity_power": 0.5,
+        "output_size": 1000,
+        "operation": "pow"
     }
 }

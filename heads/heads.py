@@ -141,7 +141,7 @@ class TANFORMER_CONV_HEAD(torch.nn.Module):
 
 
 class BIDIRECTIONAL_HEAD(torch.nn.Module):
-    def __init__(self, embedding_size_gnn, embedding_size, output_size):
+    def __init__(self, embedding_size_gnn, embedding_size, output_size, use_graph=True):
         # Init parent
         # embedding_size_gnn: int, size of embedding vector, usually vector size for vertex node
         #
@@ -150,6 +150,8 @@ class BIDIRECTIONAL_HEAD(torch.nn.Module):
 
         super(BIDIRECTIONAL_HEAD, self).__init__()
         torch.manual_seed(42)
+
+        self.use_graph = use_graph
 
         self.bottleneck = nn.Linear(embedding_size_gnn, embedding_size)
 
@@ -170,11 +172,14 @@ class BIDIRECTIONAL_HEAD(torch.nn.Module):
 
     def forward(self, x, batch, mass_shift):
 
-        batch_index = batch.batch
-        total_mass = batch.molecular_weight
+        if self.use_graph:
+            total_mass = batch.molecular_weight
+            batch_index = batch.batch
+            x = gap(x, batch_index)
+        else:
+            total_mass = batch["molecular_weight"]
 
-        hidden = gap(x, batch_index)
-        hidden = self.bottleneck(hidden)
+        hidden = self.bottleneck(x)
 
         hidden = self.skip1(hidden)
         hidden = self.skip2(hidden)

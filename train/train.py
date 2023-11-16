@@ -40,6 +40,20 @@ def train_model(
             total_loss += loss
         return total_loss / len(loader)
 
+    def train_fingerprints(loader):
+        # Enumerate over the data
+        total_loss = 0
+        for batch in loader:
+            batch = to_device(batch, device)
+            optimizer.zero_grad()
+            pred = model(batch)
+            loss = loss_fn(pred, batch["output_tensor"])
+            loss.backward()
+            optimizer.step()
+            total_loss += loss
+        return total_loss / len(loader)
+
+
     test_similarity_list = []
     val_similarity_list = []
     loss_list = []
@@ -48,28 +62,32 @@ def train_model(
         if scheduler:
             scheduler.step()
 
-        train_loss = train(train_loader)
+        if model_config["training"]["training_method"] == "fingerprints":
+            train_loss = train_fingerprints(train_loader)
+        else:
+            train_loss = train(train_loader)
+
         loss_list.append(train_loss)
 
         if epoch % report_every == 0:
             report_message = f"Epoch {epoch} | Train Loss {train_loss}"
             report_status(report_message, save_to_file=model_config["training"]["print_to_file"],
-                          directory_path=model_config["training"]["save_path"])
+                          directory_path=save_path)
 
             if test_loader:
                 test_similarity = validate_similarities_torch(test_loader, model)
                 report_message = f"Epoch {epoch} | Test DotSimilarity is {test_similarity}"
                 report_status(report_message, save_to_file=model_config["training"]["print_to_file"],
-                              directory_path=model_config["training"]["save_path"])
+                              directory_path=save_path)
 
             if val_loader:
                 val_similarity = validate_similarities_torch(val_loader, model)
                 report_message = f"Epoch {epoch} | Validation DotSimilarity is {val_similarity}"
                 report_status(report_message, save_to_file=model_config["training"]["print_to_file"],
-                              directory_path=model_config["training"]["save_path"])
+                              directory_path=save_path)
 
             report_status("",  save_to_file=model_config["training"]["print_to_file"],
-                          directory_path=model_config["training"]["save_path"])
+                          directory_path=save_path)
 
         if epoch % save_every == 0:
             metadata["test_similarity"] = test_similarity_list
@@ -112,7 +130,8 @@ def save_model(model, epoch, loss, save_path, optimizer=None, scheduler=None, me
     if (optimizer is not None) and (scheduler is not None):
         checkpoint = {
             'epoch': epoch,
-            'model_state_dict': model.state_dict(),
+            'model_body_state_dict': model.model_body.state_dict(),
+            'model_head_state_dict': model.model_head.state_dict(),
             'optimizer_state_dict': optimizer.state_dict(),
             'scheduler_state_dict': scheduler.state_dict(),
             'loss': loss,
@@ -121,7 +140,8 @@ def save_model(model, epoch, loss, save_path, optimizer=None, scheduler=None, me
     elif (optimizer is not None) and (scheduler is None):
         checkpoint = {
             'epoch': epoch,
-            'model_state_dict': model.state_dict(),
+            'model_body_state_dict': model.model_body.state_dict(),
+            'model_head_state_dict': model.model_head.state_dict(),
             'optimizer_state_dict': optimizer.state_dict(),
             'loss': loss,
         }
@@ -129,7 +149,8 @@ def save_model(model, epoch, loss, save_path, optimizer=None, scheduler=None, me
     else:
         checkpoint = {
             'epoch': epoch,
-            'model_state_dict': model.state_dict(),
+            'model_body_state_dict': model.model_body.state_dict(),
+            'model_head_state_dict': model.model_head.state_dict(),
             'loss': loss,
         }
 
@@ -142,3 +163,14 @@ def save_model(model, epoch, loss, save_path, optimizer=None, scheduler=None, me
 
     # Save the checkpoint
     torch.save(checkpoint, os.path.join(save_path, f"model_epoch_{epoch}.pt"))
+
+def to_device(batch, device):
+    """
+    Move the entire batch to the specified device.
+    :param batch: Batch of data (as a dictionary).
+    :param device: Target device.
+    :used for molecular fingerprints
+    """
+    for k, v in batch.items():
+        batch[k] = v.to(device)
+    return batch
