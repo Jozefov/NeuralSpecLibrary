@@ -2,6 +2,7 @@ import torch
 import warnings
 
 
+
 def spectrum_preparation_double(spectrum, intensity_power, output_size, operation):
     # get spectrum object and return array of specific size for prediction
     # spectrum is in shape tuple[tuple[2]]
@@ -45,4 +46,6 @@ def one_hot_encoding(label, num_labels):
     else:
         tmp_zeroes[label] = float(1)
     return tmp_zeroes
+
+
 

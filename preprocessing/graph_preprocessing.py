@@ -1,5 +1,4 @@
-
-import preprocessing_utils
+from . import preprocessing_utils
 import numpy as np
 from rdkit import Chem
 from rdkit.Chem import Descriptors
@@ -20,7 +19,7 @@ def get_atom_features(atom):
     atom_dict = {elem: index for index, elem in enumerate(PERMITTED_LIST_OF_ATOMAS)}
 
     atom_type_hot = preprocessing_utils.one_hot_encoding(atom_dict.get(atom.GetSymbol(), len(atom_dict)),
-                                     len(PERMITTED_LIST_OF_ATOMAS))
+                                                         len(PERMITTED_LIST_OF_ATOMAS))
 
     torch_result = torch.cat((torch_result, atom_type_hot), 0)
 
@@ -41,9 +40,9 @@ def get_atom_features(atom):
                       Chem.HybridizationType.OTHER]
     hybridization_dict = {elem: index for index, elem in enumerate(HYBRIDIZATIONS)}
     hybridization = atom.GetHybridization()
-    hybridization_hot = preprocessing_utils.one_hot_encoding(hybridization_dict.get(hybridization, len(hybridization_dict)), 8)
+    hybridization_hot = preprocessing_utils.one_hot_encoding(
+        hybridization_dict.get(hybridization, len(hybridization_dict)), 8)
     torch_result = torch.cat((torch_result, hybridization_hot), 0)
-
 
     # we adapt scale, the output of method GetFormalCharge is [-2, -1, 0, 1, 2]
     formal_charge = atom.GetFormalCharge()
@@ -88,7 +87,7 @@ def get_bond_features(bond, use_stereochemistry=True):
     BOND_TYPE = [1.0, 1.5, 2.0, 3.0]
     bond_dict = {elem: index for index, elem in enumerate(BOND_TYPE)}
     bond_type_hot = preprocessing_utils.one_hot_encoding(bond_dict.get(bond.GetBondTypeAsDouble(), len(bond_dict)),
-                                     len(BOND_TYPE))
+                                                         len(BOND_TYPE))
     torch_result = torch.cat((torch_result, bond_type_hot), 0)
 
     bond_is_conj_hot = preprocessing_utils.one_hot_encoding(bond.GetIsConjugated(), 1)
@@ -103,14 +102,14 @@ def get_bond_features(bond, use_stereochemistry=True):
         STEREO_TYPE = ["STEREOZ", "STEREOE", "STEREOANY", "STEREONONE"]
         stereo_dict = {elem: index for index, elem in enumerate(STEREO_TYPE)}
         stereo_type_hot = preprocessing_utils.one_hot_encoding(stereo_dict.get(str(bond.GetStereo()), len(stereo_dict)),
-                                           len(STEREO_TYPE))
+                                                               len(STEREO_TYPE))
         torch_result = torch.cat((torch_result, stereo_type_hot), 0)
     return torch_result
 
 
-def create_graph_data(nist_data, intensity_power, output_size, operation):
+def create_graph_data(nist_data, intensity_power, output_size, operation, input_source="df"):
     """
-    Create pytorch geometric graph data from parquet
+    Create pytorch geometric graph data from parquet and others
     Inputs:
 
     Pandas dataframe with columns:
@@ -125,59 +124,102 @@ def create_graph_data(nist_data, intensity_power, output_size, operation):
     """
 
     data_list = []
+    # if input is pandas dataframe
+    if input_source == "df":
+        for _, nist_obj in nist_data.iterrows():
 
-    for _, nist_obj in nist_data.iterrows():
+            # convert SMILES to RDKit mol object
+            mol = Chem.MolFromSmiles(nist_obj['smiles'])
 
-        # convert SMILES to RDKit mol object
-        mol = Chem.MolFromSmiles(nist_obj['smiles'])
+            if mol == None:
+                continue
 
-        if mol == None:
-            continue
+            molecules_features = mol_to_graph(mol)
+            X = molecules_features["atoms_features"]
+            E = molecules_features["edge_features"]
+            EF = molecules_features["edge_index"]
+            MW = molecules_features["molecular_weight"]
 
-        # get feature dimensions
-        n_nodes = mol.GetNumAtoms()
-        n_edges = 2 * mol.GetNumBonds()
+            # construct label tensor
+            y_tensor = preprocessing_utils.spectrum_preparation_double(nist_obj["spect"], intensity_power, output_size,
+                                                                       operation)
 
-        # the purpose is to find out one hot emb dimension
-        unrelated_smiles = "O=O"
-        unrelated_mol = Chem.MolFromSmiles(unrelated_smiles)
-        n_node_features = len(get_atom_features(unrelated_mol.GetAtomWithIdx(0)))
-        n_edge_features = len(get_bond_features(unrelated_mol.GetBondBetweenAtoms(0, 1)))
+            # construct Pytorch Geometric data object and append to data list
+            data_list.append(Data(x=X, edge_index=E, edge_attr=EF, molecular_weight=MW, y=y_tensor))
 
-        # construct node feature matrix X of shape (n_nodes, n_node_features)
-        X = np.zeros((n_nodes, n_node_features))
+    # if we have to create dataset from homo lumo prediction
+    elif input_source == "homo-lumo":
 
-        for atom in mol.GetAtoms():
-            X[atom.GetIdx(), :] = get_atom_features(atom)
+        for obj in nist_data:
 
-        X = torch.tensor(X, dtype=torch.float64)
+            # convert SMILES to RDKit mol object
+            mol = Chem.MolFromSmiles(obj[0])
 
-        # construct edge index array E of shape (2, n_edges)
-        (rows, cols) = np.nonzero(GetAdjacencyMatrix(mol))
+            if mol is None:
+                continue
 
-        torch_rows = torch.from_numpy(rows.astype(np.int64)).to(torch.long)
-        torch_cols = torch.from_numpy(cols.astype(np.int64)).to(torch.long)
-        E = torch.stack([torch_rows, torch_cols], dim=0)
+            # get feature dimensions
+            molecules_features = mol_to_graph(mol)
+            X = molecules_features["atoms_features"]
+            E = molecules_features["edge_features"]
+            EF = molecules_features["edge_index"]
+            MW = molecules_features["molecular_weight"]
+            smiles = molecules_features["smiles"]
 
-        # construct edge feature array EF of shape (n_edges, n_edge_features)
-        EF = np.zeros((n_edges, n_edge_features))
+            # construct label tensor
+            y_tensor = torch.tensor([[obj[1]]])
 
-        for (k, (i, j)) in enumerate(zip(rows, cols)):
-            EF[k] = get_bond_features(mol.GetBondBetweenAtoms(int(i), int(j)))
-
-        EF = torch.tensor(EF, dtype=torch.float)
-
-        # weight of molecular
-        MW = nist_obj.get("mw", None)
-        if MW == None:
-            MW = Descriptors.ExactMolWt(mol)
-        MW = torch.tensor(int(round(float(MW))))
-
-        # construct label tensor
-        y_tensor = preprocessing_utils.spectrum_preparation_double(nist_obj["spect"], intensity_power, output_size, operation)
-
-        # construct Pytorch Geometric data object and append to data list
-        data_list.append(Data(x=X, edge_index=E, edge_attr=EF, molecular_weight=MW, y=y_tensor))
+            # construct Pytorch Geometric data object and append to data list
+            data_list.append(Data(x=X, edge_index=E, edge_attr=EF, molecular_weight=MW, y=y_tensor, smiles=smiles))
 
     return data_list
 
+
+def mol_to_graph(mol):
+    """
+    Creates graph representation from  mol object
+    """
+    # get feature dimensions
+    n_nodes = mol.GetNumAtoms()
+    n_edges = 2 * mol.GetNumBonds()
+
+    # the purpose is to find out one hot emb dimension
+    unrelated_smiles = "O=O"
+    unrelated_mol = Chem.MolFromSmiles(unrelated_smiles)
+    n_node_features = len(get_atom_features(unrelated_mol.GetAtomWithIdx(0)))
+    n_edge_features = len(get_bond_features(unrelated_mol.GetBondBetweenAtoms(0, 1)))
+
+    # construct node feature matrix X of shape (n_nodes, n_node_features)
+    X = np.zeros((n_nodes, n_node_features))
+
+    for atom in mol.GetAtoms():
+        X[atom.GetIdx(), :] = get_atom_features(atom)
+
+    X = torch.tensor(X, dtype=torch.float64)
+
+    # construct edge index array E of shape (2, n_edges)
+    (rows, cols) = np.nonzero(GetAdjacencyMatrix(mol))
+
+    torch_rows = torch.from_numpy(rows.astype(np.int64)).to(torch.long)
+    torch_cols = torch.from_numpy(cols.astype(np.int64)).to(torch.long)
+    E = torch.stack([torch_rows, torch_cols], dim=0)
+
+    # construct edge feature array EF of shape (n_edges, n_edge_features)
+    EF = np.zeros((n_edges, n_edge_features))
+
+    for (k, (i, j)) in enumerate(zip(rows, cols)):
+        EF[k] = get_bond_features(mol.GetBondBetweenAtoms(int(i), int(j)))
+
+    EF = torch.tensor(EF, dtype=torch.float)
+
+    # weight of molecular
+    MW = Descriptors.ExactMolWt(mol)
+    MW = torch.tensor(int(round(float(MW))))
+
+    smiles = Chem.MolToSmiles(mol)
+
+    return {"atoms_features": X,
+            "edge_features": E,
+            "edge_index": EF,
+            "molecular_weight": MW,
+            "smiles": smiles}
