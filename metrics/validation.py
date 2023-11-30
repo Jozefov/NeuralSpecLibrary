@@ -33,20 +33,22 @@ def validate_similarities_torch(loader, model, mass_pow=1.0,  intensity_pow=0.5)
     total_similarity = 0
     count = 0
 
-    for batch in loader:
-        batch.to(DEVICE)
-        pred = model(batch)
+    model.eval()
+    with torch.no_grad():
+        for batch in loader:
+            batch.to(DEVICE)
+            pred = model(batch)
 
-        similarities = []
+            similarities = []
 
-        for true_instance, pred_instance in zip(batch.y, pred):
-            sim = dot_product_torch(true_instance, pred_instance, mass_pow=mass_pow, intensity_pow=intensity_pow)
-            similarities.append(sim)
+            for true_instance, pred_instance in zip(batch.y, pred):
+                sim = dot_product_torch(true_instance, pred_instance, mass_pow=mass_pow, intensity_pow=intensity_pow)
+                similarities.append(sim)
 
-        similarities_torch = torch.tensor(similarities, dtype=torch.float64)
+            similarities_torch = torch.tensor(similarities, dtype=torch.float64)
 
-        total_similarity += torch.sum(similarities_torch).item()
-        count += len(similarities_torch)
+            total_similarity += torch.sum(similarities_torch).item()
+            count += len(similarities_torch)
 
     mean_similarity = total_similarity / count if count != 0 else 0
 
