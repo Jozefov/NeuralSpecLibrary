@@ -107,7 +107,7 @@ def get_bond_features(bond, use_stereochemistry=True):
     return torch_result
 
 
-def create_graph_data(nist_data, intensity_power, output_size, operation, input_source="df"):
+def create_graph_data(nist_data, intensity_power, output_size, operation, metadata=None):
     """
     Create pytorch geometric graph data from parquet and others
     Inputs:
@@ -123,9 +123,11 @@ def create_graph_data(nist_data, intensity_power, output_size, operation, input_
     graphs that can readily be used for machine learning
     """
 
+    if metadata is None:
+        metadata = {"output": "spectrum"}
     data_list = []
     # if input is pandas dataframe
-    if input_source == "df":
+    if metadata["output"] == "spectrum":
         for _, nist_obj in nist_data.iterrows():
 
             # convert SMILES to RDKit mol object
@@ -148,9 +150,14 @@ def create_graph_data(nist_data, intensity_power, output_size, operation, input_
             data_list.append(Data(x=X, edge_index=E, edge_attr=EF, molecular_weight=MW, y=y_tensor))
 
     # if we have to create dataset from homo lumo prediction
-    elif input_source == "homo-lumo":
+    elif metadata["output"] == "homo-lumo":
 
         for obj in nist_data:
+
+            # We do this condition based on knowledge of HOMO-LUMO distribution value
+            # With this we lose 2839 values
+            if obj[1] > metadata["outlier_value"]:
+                continue
 
             # convert SMILES to RDKit mol object
             mol = Chem.MolFromSmiles(obj[0])
@@ -167,7 +174,8 @@ def create_graph_data(nist_data, intensity_power, output_size, operation, input_
             smiles = molecules_features["smiles"]
 
             # construct label tensor
-            y_tensor = torch.tensor([obj[1]])
+            scaled_value = metadata["scaler"].transform([[obj[1]]])[0][0]
+            y_tensor = torch.tensor([scaled_value])
 
             # construct Pytorch Geometric data object and append to data list
             data_list.append(Data(x=X, edge_index=E, edge_attr=EF, molecular_weight=MW, y=y_tensor, smiles=smiles))
