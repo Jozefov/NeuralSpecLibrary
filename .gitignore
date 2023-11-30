@@ -1,5 +1,6 @@
 # Ignore virtual environment
 venv/
+metacentrum_links.txt
 
 # Ignore other common directories and files
 __pycache__/

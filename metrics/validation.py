@@ -8,7 +8,7 @@ def dot_product_torch(true, pred, mass_pow=3.0, intensity_pow=0.6):
     assert true.dim() == pred.dim() == 1, "Both tensors should be 1-dimensional"
 
     length = true.size(0)
-    mass = torch.arange(length, dtype=torch.float64)
+    mass = torch.arange(length, dtype=torch.float64).to(DEVICE)
 
     wl = (mass ** mass_pow * pred**intensity_pow)
     wu = (mass ** mass_pow * true**intensity_pow)

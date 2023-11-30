@@ -1,1 +1,17 @@
+# pip install as in script_metacentrum_without_python and build_metacentrum.sh
+# do not need to install pip, come with python, only use absolute path
+# pip install with interactive session
+# "${PYTHONUSERBASE}/bin/pip3" install -r /storage/projects/msml/NeuralSpecLib/NeuralSpecLibrary/requirements.txt
+
+# store temporary files in SCRATCHDIR, if you need more space
+# export TMPDIR=$SCRATCHDIR
+
 qsub -I -l select=1:ncpus=4:mem=24gb:scratch_local=40gb -l walltime=1:00:00
+
+# then only need to run
+
+export PYTHONUSERBASE="/storage/projects/msml/NeuralSpecLib/python310"
+export PYTHONPATH="${PYTHONUSERBASE}/lib/python3.10/site-packages:${PYTHONPATH}"
+export PATH="${PYTHONUSERBASE}/bin:${PATH}"
+
+python3 /storage/projects/msml/NeuralSpecLib/NeuralSpecLibrary/main.py

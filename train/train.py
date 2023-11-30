@@ -58,6 +58,7 @@ def train_model(
     val_similarity_list = []
     loss_list = []
 
+
     for epoch in range(epochs):
         if scheduler:
             scheduler.step()

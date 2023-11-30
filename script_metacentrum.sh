@@ -6,13 +6,17 @@
 
 # Define the desired Python version and installation paths
 DESIRED_PYTHON_VERSION="3.10.12"
-PYTHON_INSTALL_PATH="/storage/brno2/home/jozefov_147/python/${DESIRED_PYTHON_VERSION}"
-VENV_NAME="venv"
+PYTHON_INSTALL_PATH="/storage/projects/msml/NeuralSpecLib/python/${DESIRED_PYTHON_VERSION}"
+VENV_NAME="/storage/projects/msml/NeuralSpecLib/NeuralSpecLibrary/venv"
 REQUIREMENTS_PATH="/storage/projects/msml/NeuralSpecLib/NeuralSpecLibrary/requirements.txt"
 MAIN_PY_PATH="/storage/projects/msml/NeuralSpecLib/NeuralSpecLibrary/main.py"
 
 # Prepare environment
 export PYTHONUSERBASE="${PYTHON_INSTALL_PATH}/.local"
+export PYTHONPATH="${PYTHONUSERBASE}/lib/python3.10/site-packages:${PYTHONPATH}"
+export PATH="${PYTHONUSERBASE}/bin:${PATH}"
+
+export PYTHONUSERBASE="/storage/projects/msml/NeuralSpecLib/python/.local"
 export PYTHONPATH="${PYTHONUSERBASE}/lib/python3.10/site-packages:${PYTHONPATH}"
 export PATH="${PYTHONUSERBASE}/bin:${PATH}"
 
@@ -56,6 +60,9 @@ python3 -m venv "${VENV_NAME}"
 
 # Activate the virtual environment
 source "${VENV_NAME}/bin/activate"
+
+# Clear the cache
+pip cache purge
 
 # Install requirements from the requirements.txt file
 pip install -r "${REQUIREMENTS_PATH}"
