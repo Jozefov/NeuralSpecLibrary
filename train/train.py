@@ -2,7 +2,7 @@ import torch
 import os
 
 from config import DEVICE
-from metrics import validate_similarities_torch
+from metrics import validate_similarities_torch, validate_regression
 
 
 def train_model(
@@ -29,6 +29,8 @@ def train_model(
 
     def train(loader):
         # Enumerate over the data
+
+        model.train()
         total_loss = 0
         for batch in loader:
             batch.to(device)
@@ -42,6 +44,8 @@ def train_model(
 
     def train_fingerprints(loader):
         # Enumerate over the data
+
+        model.train()
         total_loss = 0
         for batch in loader:
             batch = to_device(batch, device)
@@ -53,11 +57,7 @@ def train_model(
             total_loss += loss
         return total_loss / len(loader)
 
-
-    test_similarity_list = []
-    val_similarity_list = []
     loss_list = []
-
 
     for epoch in range(epochs):
         if scheduler:
@@ -71,19 +71,35 @@ def train_model(
         loss_list.append(train_loss)
 
         if epoch % report_every == 0:
-            report_message = f"Epoch {epoch} | Train Loss {train_loss}"
+            report_message = f"Epoch {epoch} | Train Loss {train_loss} \n"
             report_status(report_message, save_to_file=model_config["training"]["print_to_file"],
                           directory_path=save_path)
 
             if test_loader:
-                test_similarity = validate_similarities_torch(test_loader, model)
-                report_message = f"Epoch {epoch} | Test DotSimilarity is {test_similarity}"
+                if model_config["training"]["training_method"] == "regression":
+                    regression_metrics = validate_regression(test_loader, model)
+                    report_message = (f"Epoch {epoch} | Test rmse {regression_metrics['rmse']} \n"
+                                      f"Epoch {epoch} | Test mae {regression_metrics['mae']} \n"
+                                      f"Epoch {epoch} | Test r2 {regression_metrics['r2']} \n")
+
+                else:
+                    test_similarity = validate_similarities_torch(test_loader, model)
+                    report_message = f"Epoch {epoch} | Test DotSimilarity is {test_similarity}"
+
                 report_status(report_message, save_to_file=model_config["training"]["print_to_file"],
                               directory_path=save_path)
 
             if val_loader:
-                val_similarity = validate_similarities_torch(val_loader, model)
-                report_message = f"Epoch {epoch} | Validation DotSimilarity is {val_similarity}"
+                if model_config["training"]["training_method"] == "regression":
+                    regression_metrics = validate_regression(val_loader, model)
+                    report_message = (f"Epoch {epoch} | Validation rmse {regression_metrics['rmse']} \n"
+                                      f"Epoch {epoch} | Validation {regression_metrics['mae']} \n"
+                                      f"Epoch {epoch} | Validation r2 {regression_metrics['r2']} \n")
+
+                else:
+                    val_similarity = validate_similarities_torch(val_loader, model)
+                    report_message = f"Epoch {epoch} | Validation DotSimilarity is {val_similarity}"
+
                 report_status(report_message, save_to_file=model_config["training"]["print_to_file"],
                               directory_path=save_path)
 
@@ -91,8 +107,6 @@ def train_model(
                           directory_path=save_path)
 
         if epoch % save_every == 0:
-            metadata["test_similarity"] = test_similarity_list
-            metadata["validation_similarity"] = val_similarity_list
             metadata["loss_all"] = loss_list
 
             save_model(model, epoch, train_loss, save_path, optimizer=optimizer, scheduler=scheduler, metadata=metadata)

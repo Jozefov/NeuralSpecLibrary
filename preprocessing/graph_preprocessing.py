@@ -167,7 +167,7 @@ def create_graph_data(nist_data, intensity_power, output_size, operation, input_
             smiles = molecules_features["smiles"]
 
             # construct label tensor
-            y_tensor = torch.tensor([[obj[1]]])
+            y_tensor = torch.tensor([obj[1]])
 
             # construct Pytorch Geometric data object and append to data list
             data_list.append(Data(x=X, edge_index=E, edge_attr=EF, molecular_weight=MW, y=y_tensor, smiles=smiles))

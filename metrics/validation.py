@@ -1,5 +1,6 @@
 import torch
-
+import numpy as np
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from config import DEVICE
 
 
@@ -50,3 +51,61 @@ def validate_similarities_torch(loader, model, mass_pow=1.0,  intensity_pow=0.5)
     mean_similarity = total_similarity / count if count != 0 else 0
 
     return mean_similarity
+
+
+def validate_regression(loader, model):
+    # validate model during training on regression task
+    # return: dictionary with measured values
+
+    true_values = []
+    predicted_values = []
+
+    model.eval()
+    with torch.no_grad():
+        for batch in loader:
+            batch.to(DEVICE)
+
+            predictions = model(batch)
+            true_values.extend(batch.y.numpy())
+            predicted_values.extend(predictions.numpy())
+
+    # Convert lists to arrays for metric calculation
+    true_values = np.array(true_values)
+    predicted_values = np.array(predicted_values)
+
+
+    # Calculate metrics
+    rmse = calculate_rmse(true_values, predicted_values)
+    mae = calculate_mae(true_values, predicted_values)
+    r2 = calculate_r2(true_values, predicted_values)
+
+    result = {"rmse": rmse,
+              "mae": mae,
+              "r2": r2}
+
+    return result
+
+
+
+def calculate_rmse(true_values, predicted_values):
+    # calculate RMSE on scalar
+
+    mse = mean_squared_error(true_values, predicted_values)
+    rmse = mse ** 0.5
+    return rmse
+
+
+def calculate_mae(true_values, predicted_values):
+    # calculate mean absolute error
+
+    mae = mean_absolute_error(true_values, predicted_values)
+    return mae
+
+
+def calculate_r2(true_values, predicted_values):
+    # calculate R-squared
+    r2 = r2_score(true_values, predicted_values)
+    return r2
+
+
+

@@ -49,5 +49,6 @@ class ScaledMSE(nn.Module):
 
 loss_fun_dict = {
     "Huber": torch.nn.HuberLoss(),
-    "ScaledMSE": ScaledMSE()
+    "ScaledMSE": ScaledMSE(),
+    "MSE": torch.nn.MSELoss()
 }

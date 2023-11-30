@@ -14,7 +14,7 @@ from train import train_model
 def main():
 
     # Set model we are working with
-    model_configuration = config_model.transformer_cnn_model
+    model_configuration = config_model.transformer_cnn_regression_model
 
     # Set path to datasets
     train_dataset_path = model_configuration["training"]["train_dataset_path"]
@@ -34,18 +34,19 @@ def main():
 
     from torch.utils.data import Subset
     import random
-    def create_subset_indices(dataset, num_instances):
-        return random.sample(range(len(dataset)), min(len(dataset), num_instances))
+    # def create_subset_indices(dataset, num_instances):
+    #     return random.sample(range(len(dataset)), min(len(dataset), num_instances))
 
-    # Create subset indices for each dataset
-    train_indices = create_subset_indices(train_dataset, 5000)
-    validation_indices = create_subset_indices(validation_dataset, 5000)
-    test_indices = create_subset_indices(test_dataset, 5000)
+
+    # # Create subset indices for each dataset
+    # train_indices = create_subset_indices(train_dataset, 5000)
+    # validation_indices = create_subset_indices(validation_dataset, 5000)
+    # test_indices = create_subset_indices(test_dataset, 5000)
 
     # Create subsets from the datasets using the generated indices
-    train_subset = Subset(train_dataset, train_indices)
-    validation_subset = Subset(validation_dataset, validation_indices)
-    test_subset = Subset(test_dataset, test_indices)
+    train_subset = train_dataset[:5000]
+    validation_subset = validation_dataset[:5000]
+    test_subset = test_dataset[:5000]
 
     train_loader = DataLoader(train_subset, batch_size=model_configuration["training"]["batch_size"], shuffle=True)
     validation_loader = DataLoader(validation_subset, batch_size=model_configuration["training"]["batch_size"], shuffle=True)

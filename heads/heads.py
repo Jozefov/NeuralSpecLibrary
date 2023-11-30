@@ -211,4 +211,32 @@ class BIDIRECTIONAL_HEAD(torch.nn.Module):
         out = out.type(torch.float64)
         return out
 
+class RegressionHead(torch.nn.Module):
+    def __init__(self, input_size, hidden_size, use_graph=True):
+        # Init parent
+        # input_size: int, size of embedding vector, usually vector size for vertex node
+        #
+        # hidden_size: int, size of hidden layer vector,
+
+        super(RegressionHead, self).__init__()
+
+        torch.manual_seed(42)
+        self.use_graph = use_graph
+
+        self.fc1 = torch.nn.Linear(input_size, hidden_size)
+        self.relu = torch.nn.ReLU()
+        self.fc2 = torch.nn.Linear(hidden_size, 1)  # Output is a single scalar
+
+    def forward(self, x, batch, mass_shift):
+
+        if self.use_graph:
+            batch_index = batch.batch
+            x = gap(x, batch_index)
+
+        x = self.fc1(x)
+        x = self.relu(x)
+        x = self.fc2(x)
+
+        out = x.type(torch.float64)
+        return out
 
