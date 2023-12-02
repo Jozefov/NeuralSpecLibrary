@@ -68,8 +68,11 @@ def validate_regression(loader, model):
             batch.to(DEVICE)
 
             predictions = model(batch)
-            true_values.extend(batch.y.numpy())
-            predicted_values.extend(predictions.numpy())
+            true_values.extend(batch.y.cpu().numpy())
+
+            if predictions.dim() > 1 and predictions.shape[1] == 1:
+                predictions = predictions.squeeze(1)
+            predicted_values.extend(predictions.cpu().numpy())
 
     # Convert lists to arrays for metric calculation
     true_values = np.array(true_values)
@@ -101,6 +104,7 @@ def calculate_mae(true_values, predicted_values):
     # calculate mean absolute error
 
     mae = mean_absolute_error(true_values, predicted_values)
+    print(true_values.shape, predicted_values.shape)
     return mae
 
 

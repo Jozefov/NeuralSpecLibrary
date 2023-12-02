@@ -40,6 +40,8 @@ def train_model(
             loss.backward()
             optimizer.step()
             total_loss += loss
+            if scheduler:
+                scheduler.step()
         return total_loss / len(loader)
 
     def train_fingerprints(loader):
@@ -55,13 +57,13 @@ def train_model(
             loss.backward()
             optimizer.step()
             total_loss += loss
+            if scheduler:
+                scheduler.step()
         return total_loss / len(loader)
 
     loss_list = []
 
     for epoch in range(epochs):
-        if scheduler:
-            scheduler.step()
 
         if model_config["training"]["training_method"] == "fingerprints":
             train_loss = train_fingerprints(train_loader)

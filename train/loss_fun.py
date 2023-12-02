@@ -20,7 +20,7 @@ class ScaledMSE(nn.Module):
         self.loss_pow = loss_pow
         self.loss = torch.nn.MSELoss(reduce='none')
 
-    def forward(self, true_spect, pred_spect):
+    def forward(self, pred_spect, true_spect):
         SPECT_N = true_spect.shape[1]
 
         mw = 1 + torch.arange(SPECT_N).to(true_spect.device) * self.mass_scale
@@ -46,9 +46,24 @@ class ScaledMSE(nn.Module):
 
         return ((l * lw) ** self.loss_pow).mean()
 
+class ReshapedMSELoss(nn.Module):
+    # used for HOMO_LUMO prediction
+    def __init__(self):
+        super(ReshapedMSELoss, self).__init__()
+        self.mse_loss = nn.MSELoss()  # Default MSE Loss
+
+    def forward(self, predictions, targets):
+        # Reshape predictions to match the targets shape
+        # predictions shape expected: [batch_size, 1]
+        # targets shape expected: [batch_size]
+        if predictions.dim() > 1 and predictions.shape[1] == 1:
+            predictions = predictions.squeeze(1)
+
+        # Compute the MSE Loss
+        return self.mse_loss(predictions, targets)
 
 loss_fun_dict = {
     "Huber": torch.nn.HuberLoss(),
     "ScaledMSE": ScaledMSE(),
-    "MSE": torch.nn.MSELoss()
+    "MSE": ReshapedMSELoss()
 }

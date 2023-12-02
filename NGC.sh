@@ -25,4 +25,4 @@ export PATH="$PYTHONUSERBASE/bin:$PATH"
 
 "$PYTHONUSERBASE/bin/pip3" install -r /storage/projects/msml/NeuralSpecLib/NeuralSpecLibrary/requirements.txt
 
-singularity run --nv /cvmfs/singularity.metacentrum.cz/NGC/PyTorch\:23.05-py3.SIF python3 /storage/projects/msml/NeuralSpecLib/NeuralSpecLibrary/main.py
+singularity run --nv -B $SCRATCHDIR /cvmfs/singularity.metacentrum.cz/NGC/PyTorch\:23.05-py3.SIF python3 /storage/projects/msml/NeuralSpecLib/NeuralSpecLibrary/main.py
