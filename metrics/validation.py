@@ -104,7 +104,6 @@ def calculate_mae(true_values, predicted_values):
     # calculate mean absolute error
 
     mae = mean_absolute_error(true_values, predicted_values)
-    print(true_values.shape, predicted_values.shape)
     return mae
 
 
