@@ -212,7 +212,7 @@ class BIDIRECTIONAL_HEAD(torch.nn.Module):
         return out
 
 class RegressionHead(torch.nn.Module):
-    def __init__(self, input_size, hidden_size, use_graph=True):
+    def __init__(self, input_size, hidden_size, use_graph=True, dropout_rate=0.15):
         # Init parent
         # input_size: int, size of embedding vector, usually vector size for vertex node
         #
@@ -222,10 +222,17 @@ class RegressionHead(torch.nn.Module):
 
         torch.manual_seed(42)
         self.use_graph = use_graph
+        self.dropout_rate = dropout_rate
 
         self.fc1 = torch.nn.Linear(input_size, hidden_size)
-        self.relu = torch.nn.ReLU()
-        self.fc2 = torch.nn.Linear(hidden_size, 1)  # Output is a single scalar
+        self.relu1 = torch.nn.ReLU()
+        self.dropout1 = nn.Dropout(self.dropout_rate)
+        self.fc2 = torch.nn.Linear(input_size, hidden_size)
+        self.relu2 = torch.nn.ReLU()
+        self.dropout2 = nn.Dropout(self.dropout_rate)
+        self.fc3 = torch.nn.Linear(input_size, hidden_size)
+        self.relu3 = torch.nn.ReLU()
+        self.fc4 = torch.nn.Linear(hidden_size, 1)  # Output is a single scalar
 
     def forward(self, x, batch, mass_shift):
 
@@ -234,8 +241,14 @@ class RegressionHead(torch.nn.Module):
             x = gap(x, batch_index)
 
         x = self.fc1(x)
-        x = self.relu(x)
+        x = self.relu1(x)
+        x = self.dropout1(x)
         x = self.fc2(x)
+        x = self.relu2(x)
+        x = self.dropout2(x)
+        x = self.fc3(x)
+        x = self.relu3(x)
+        x = self.fc4(x)
 
         out = x.type(torch.float64)
         return out

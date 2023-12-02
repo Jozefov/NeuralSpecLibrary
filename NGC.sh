@@ -1,8 +1,8 @@
 #!/bin/bash
-#PBS -N PyTorch_test
+#PBS -N HOMO-LUMO_regression
 #PBS -q gpu
-#PBS -l select=1:ncpus=2:ngpus=1:mem=24gb:scratch_local=60gb:gpu_cap=cuda61
-#PBS -l walltime=1:00:00
+#PBS -l select=1:ncpus=2:ngpus=1:mem=34gb:scratch_local=128gb:gpu_cap=cuda61
+#PBS -l walltime=3:00:00
 #PBS -m ae
 
 export TMPDIR=$SCRATCHDIR
