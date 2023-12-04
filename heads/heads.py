@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch_geometric.nn import global_mean_pool as gap
 
 from .heads_utils import mask_prediction_by_mass
@@ -213,43 +214,64 @@ class BIDIRECTIONAL_HEAD(torch.nn.Module):
 
 class RegressionHead(torch.nn.Module):
     def __init__(self, input_size, hidden_size, use_graph=True, dropout_rate=0.15):
-        # Init parent
-        # input_size: int, size of embedding vector, usually vector size for vertex node
-        #
-        # hidden_size: int, size of hidden layer vector,
-
         super(RegressionHead, self).__init__()
-
         torch.manual_seed(42)
+
         self.use_graph = use_graph
         self.dropout_rate = dropout_rate
 
-        self.fc1 = torch.nn.Linear(input_size, hidden_size)
-        self.relu1 = torch.nn.ReLU()
-        self.dropout1 = nn.Dropout(self.dropout_rate)
-        self.fc2 = torch.nn.Linear(input_size, hidden_size)
-        self.relu2 = torch.nn.ReLU()
-        self.dropout2 = nn.Dropout(self.dropout_rate)
-        self.fc3 = torch.nn.Linear(input_size, hidden_size)
-        self.relu3 = torch.nn.ReLU()
-        self.fc4 = torch.nn.Linear(hidden_size, 1)  # Output is a single scalar
+        # Define layers
+        self.fc1 = nn.Linear(input_size, hidden_size)
+        self.bn1 = nn.BatchNorm1d(hidden_size)
+        self.fc2 = nn.Linear(hidden_size, hidden_size)
+        self.bn2 = nn.BatchNorm1d(hidden_size)
+        self.fc3 = nn.Linear(hidden_size, hidden_size)
+        self.bn3 = nn.BatchNorm1d(hidden_size)
+        self.fc4 = nn.Linear(hidden_size, hidden_size)
+        self.bn4 = nn.BatchNorm1d(hidden_size)
+        self.fc5 = nn.Linear(hidden_size, hidden_size)
+        self.bn5 = nn.BatchNorm1d(hidden_size)
+        self.fc6 = nn.Linear(hidden_size, hidden_size // 2)
+        self.bn6 = nn.BatchNorm1d(hidden_size // 2)
+        self.fc7 = nn.Linear(hidden_size // 2, 1)  # Output is a single scalar
+
+        self.dropout = nn.Dropout(dropout_rate)
 
     def forward(self, x, batch, mass_shift):
-
         if self.use_graph:
             batch_index = batch.batch
-            x = gap(x, batch_index)
+            x = gap(x, batch_index)  # Assuming gap is a predefined function
 
-        x = self.fc1(x)
-        x = self.relu1(x)
-        x = self.dropout1(x)
-        x = self.fc2(x)
-        x = self.relu2(x)
-        x = self.dropout2(x)
-        x = self.fc3(x)
-        x = self.relu3(x)
-        x = self.fc4(x)
+        # Layer 1
+        identity = x
+        x = F.relu(self.bn1(self.fc1(x)))
+        x = self.dropout(x)
 
-        out = x.type(torch.float64)
+        # Layer 2 with skip connection
+        x = F.relu(self.bn2(self.fc2(x)))
+        x = self.dropout(x)
+        x += identity  # Skip connection
+
+        # Layer 3
+        identity = x
+        x = F.relu(self.bn3(self.fc3(x)))
+        x = self.dropout(x)
+
+        # Layer 4 with skip connection
+        x = F.relu(self.bn4(self.fc4(x)))
+        x = self.dropout(x)
+        x += identity  # Skip connection
+
+        # Layer 5
+        identity = x
+        x = F.relu(self.bn5(self.fc5(x)))
+        x = self.dropout(x)
+
+        # Layer 6 with reduced size
+        x = F.relu(self.bn6(self.fc6(x)))
+        x = self.dropout(x)
+
+        # Output layer
+        out = self.fc7(x).type(torch.float64)
+
         return out
-

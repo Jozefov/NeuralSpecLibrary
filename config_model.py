@@ -18,7 +18,7 @@ cnn_model = {
     "mass_shift": 5,
     "embedding": CONV_GNN,
     "head": CONV_HEAD,
-    "model": CombinedModelCNN(50, int(2000*0.15), 2000, 1000, 5),
+    "model": CombinedModelCNN(50, int(200*0.15), 100, 1000, 5),
     "training": {
         "training_method": "graph",
         "loss_fun": train.loss_fun.loss_fun_dict["Huber"],
@@ -27,15 +27,15 @@ cnn_model = {
         "scheduler": train.scheduler.scheduler_dic["lr_scheduler"],
         "step_size": 100,
         "gamma": 0.5,
-        "epochs": 300,
+        "epochs": 10,
         "batch_size": 64,
-        "train_dataset_path": "/home/michpir/Documents/PROJECTS/dataset/train_subset_pow.pkl",
-        "validation_dataset_path": "/home/michpir/Documents/PROJECTS/dataset/validation_subset_pow.pkl",
-        "test_dataset_path": "/home/michpir/Documents/PROJECTS/dataset/Preprocessed_test_pow_preparation_no_sparse_small.output",
+        "train_dataset_path": "/home/michpir/Documents/PROJECTS/dataset/train_graph_pow.output",
+        "validation_dataset_path": "/home/michpir/Documents/PROJECTS/dataset/validation_graph_pow.output",
+        "test_dataset_path": "/home/michpir/Documents/PROJECTS/dataset/test_graph_pow.output",
         "save_every": 1,
         "report_every": 1,
         "print_to_file": True,
-        "save_path": "/home/michpir/Documents/PROJECTS/output",
+        "save_path": "/home/michpir/Documents/PROJECTS/output/ccn_model",
     }
 }
 
@@ -65,7 +65,7 @@ transformer_cnn_model = {
         "scheduler": train.scheduler.scheduler_dic["lr_scheduler"],
         "step_size": 100,
         "gamma": 0.5,
-        "epochs": 300,
+        "epochs": 10,
         "batch_size": 64,
         "train_dataset_path": "/home/michpir/Documents/PROJECTS/dataset/train_graph_pow.output",
         "validation_dataset_path": "/home/michpir/Documents/PROJECTS/dataset/validation_graph_pow.output",
@@ -73,7 +73,7 @@ transformer_cnn_model = {
         "save_every": 1,
         "report_every": 1,
         "print_to_file": True,
-        "save_path": "/home/michpir/Documents/PROJECTS/output",
+        "save_path": "/home/michpir/Documents/PROJECTS/output/transformer_model",
     }
 }
 
@@ -102,7 +102,7 @@ gat_model = {
         "scheduler": train.scheduler.scheduler_dic["lr_scheduler"],
         "step_size": 100,
         "gamma": 0.5,
-        "epochs": 300,
+        "epochs": 10,
         "batch_size": 64,
         "train_dataset_path": "/home/michpir/Documents/PROJECTS/dataset/train_graph_pow.output",
         "validation_dataset_path": "/home/michpir/Documents/PROJECTS/dataset/validation_graph_pow.output",
@@ -110,7 +110,7 @@ gat_model = {
         "save_every": 1,
         "report_every": 1,
         "print_to_file": True,
-        "save_path": "/home/michpir/Documents/PROJECTS/output",
+        "save_path": "/home/michpir/Documents/PROJECTS/output/gat_model",
     }
 }
 
