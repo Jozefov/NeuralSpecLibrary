@@ -212,6 +212,7 @@ class BIDIRECTIONAL_HEAD(torch.nn.Module):
         out = out.type(torch.float64)
         return out
 
+
 class RegressionHead(torch.nn.Module):
     def __init__(self, input_size, hidden_size, use_graph=True, dropout_rate=0.15):
         super(RegressionHead, self).__init__()
@@ -225,15 +226,23 @@ class RegressionHead(torch.nn.Module):
         self.bn1 = nn.BatchNorm1d(hidden_size)
         self.fc2 = nn.Linear(hidden_size, hidden_size)
         self.bn2 = nn.BatchNorm1d(hidden_size)
+        self.proj1 = nn.Linear(input_size, hidden_size)  # Projection layer for skip connection
+
         self.fc3 = nn.Linear(hidden_size, hidden_size)
         self.bn3 = nn.BatchNorm1d(hidden_size)
         self.fc4 = nn.Linear(hidden_size, hidden_size)
         self.bn4 = nn.BatchNorm1d(hidden_size)
+        self.proj2 = nn.Linear(hidden_size, hidden_size)  # Projection layer for skip connection
+
         self.fc5 = nn.Linear(hidden_size, hidden_size)
         self.bn5 = nn.BatchNorm1d(hidden_size)
-        self.fc6 = nn.Linear(hidden_size, hidden_size // 2)
-        self.bn6 = nn.BatchNorm1d(hidden_size // 2)
-        self.fc7 = nn.Linear(hidden_size // 2, 1)  # Output is a single scalar
+        self.fc6 = nn.Linear(hidden_size, hidden_size)
+        self.bn6 = nn.BatchNorm1d(hidden_size)
+        self.proj3 = nn.Linear(hidden_size, hidden_size)  # Projection layer for skip connection
+
+        self.fc7 = nn.Linear(hidden_size, hidden_size // 2)
+        self.bn7 = nn.BatchNorm1d(hidden_size // 2)
+        self.fc8 = nn.Linear(hidden_size // 2, 1)  # Output is a single scalar
 
         self.dropout = nn.Dropout(dropout_rate)
 
@@ -242,36 +251,36 @@ class RegressionHead(torch.nn.Module):
             batch_index = batch.batch
             x = gap(x, batch_index)  # Assuming gap is a predefined function
 
-        # Layer 1
+        # First layer
         identity = x
         x = F.relu(self.bn1(self.fc1(x)))
         x = self.dropout(x)
 
-        # Layer 2 with skip connection
+        # Second layer with skip connection
+        identity = self.proj1(identity)
         x = F.relu(self.bn2(self.fc2(x)))
         x = self.dropout(x)
         x += identity  # Skip connection
 
-        # Layer 3
+        # Third and Fourth layers
         identity = x
         x = F.relu(self.bn3(self.fc3(x)))
         x = self.dropout(x)
-
-        # Layer 4 with skip connection
         x = F.relu(self.bn4(self.fc4(x)))
+        x = self.dropout(x)
+
+        # Fifth and Sixth layers with skip connection
+        identity = self.proj2(identity)
+        x = F.relu(self.bn5(self.fc5(x)))
+        x = self.dropout(x)
+        x = F.relu(self.bn6(self.fc6(x)))
         x = self.dropout(x)
         x += identity  # Skip connection
 
-        # Layer 5
-        identity = x
-        x = F.relu(self.bn5(self.fc5(x)))
+        # Seventh layer and Output layer
+        x = F.relu(self.bn7(self.fc7(x)))
         x = self.dropout(x)
-
-        # Layer 6 with reduced size
-        x = F.relu(self.bn6(self.fc6(x)))
-        x = self.dropout(x)
-
-        # Output layer
-        out = self.fc7(x).type(torch.float64)
+        out = self.fc8(x).type(torch.float64)
 
         return out
+
